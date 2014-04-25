@@ -1,7 +1,13 @@
 <?php
 
-return array_merge(array(
+$config = array(
     "app" => array(
         "MasterCuti" => "\\WWII\\Console\\Runnable\\MasterCuti\\MasterCuti",
     ),
-), include('config.sensitive.php'));
+);
+
+if (file_exists(__DIR__ . '/config.sensitive.php')) {
+    $config = array_merge($config, include(__DIR__ . '/config.sensitive.php'));
+}
+
+return $config;
