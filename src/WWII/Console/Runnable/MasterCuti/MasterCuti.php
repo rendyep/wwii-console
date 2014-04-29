@@ -17,7 +17,7 @@ class MasterCuti extends \WWII\Console\AbstractConsole
 
         $this->displayMessage('Process start : ' . $start->format('d-m-Y H:i:s'));
         $this->displayMessage('Proess end    : ' . $end->format('d-m-Y H:i:s'));
-        $this->displayMessage('Time elapsed  : ' . $end->diff($start)->format('%h hours %m minutes %s seconds'));
+        $this->displayMessage('Time elapsed  : ' . $end->diff($start)->format('%h hours %i minutes %s seconds'));
     }
 
     protected function generateMasterCuti()
@@ -61,6 +61,7 @@ class MasterCuti extends \WWII\Console\AbstractConsole
                     $masterCuti->setDepartemen($masterKaryawan['fDeptName']);
 
                     $tanggalMasukKerja = new \DateTime($masterKaryawan['fInDate']);
+                    $masterCuti->setTanggalMasuk($tanggalMasukKerja);
                     $tanggalBerlaku = clone($tanggalMasukKerja);
                     while ($tanggalBerlaku < $lastYear) {
                         $tanggalBerlaku->add(new \DateInterval('P1Y'));
