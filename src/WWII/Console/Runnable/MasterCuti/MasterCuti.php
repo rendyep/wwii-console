@@ -28,15 +28,14 @@ class MasterCuti extends \WWII\Console\AbstractConsole
         $lastYear->sub(new \DateInterval('P1Y'));
 
         $this->displayMessage('Preparing GenerateMasterCuti...');
-        $rsMasterKaryawan = $this->databaseManager->query("SELECT t_PALM_PersonnelFileMst.fCode,"
-            . " t_PALM_PersonnelFileMst.fName, t_PALM_PersonnelFileMst.fInDate,"
-            . " t_BMSM_DeptMst.fDeptName"
+        $rsMasterKaryawan = $this->databaseManager->prepare("SELECT t_PALM_PersonnelFileMst.fCode,"
+            . " t_PALM_PersonnelFileMst.fName, t_PALM_PersonnelFileMst.fInDate, t_BMSM_DeptMst.fDeptName"
             . " FROM t_PALM_PersonnelFileMst"
             . " LEFT JOIN t_BMSM_DeptMst ON t_PALM_PersonnelFileMst.fDeptCode = t_BMSM_DeptMst.fDeptCode"
-            . " WHERE fCode LIKE '0%'"
-            . " AND fInDate <= '{$lastYear->format('Y-m-d')}'"
-            . " AND fDFlag = 0"
+            . " WHERE fCode LIKE '0%' AND fInDate <= :lastYear AND fDFlag = 0"
             . " ORDER BY fInDate ASC, fCode ASC");
+        $rsMasterKaryawan->bindParam(':lastYear', $lastYear->format('Y-m-d'));
+        $rsMasterKaryawan->execute();
 
         $masterKaryawanList = $rsMasterKaryawan->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -86,31 +85,31 @@ class MasterCuti extends \WWII\Console\AbstractConsole
                 $this->displayMessage('Generating MasterCuti...');
                 $this->entityManager->flush();
             } else {
-                $this->displayMessage('No new MasterCuti to generate.');
+                $this->displayMessage('No new MasterCuti generated.');
             }
         }
 
         $this->displayMessage('GenerateMasterCuti completed!' . PHP_EOL);
+        sleep(1);
     }
 
     protected function generatePerpanjanganCuti()
     {
-        $yesterday = new \DateTime();
-        $yesterday->sub(new \DateInterval('P1D'));
+        $now = new \DateTime();
 
         $this->displayMessage('Preparing GeneratePerpanjanganCuti...');
         $masterCutiList = $this->entityManager->createQueryBuilder()
             ->select('masterCuti')
             ->from('WWII\Domain\Hrd\Cuti\MasterCuti', 'masterCuti')
             ->where('masterCuti.tanggalKadaluarsa = :tanggalKadaluarsa')
-            ->setParameter('tanggalKadaluarsa', $yesterday->format('Y-m-d'))
+            ->setParameter('tanggalKadaluarsa', $now->format('Y-m-d'))
             ->getQuery()->getResult();
 
         if (empty($masterCutiList)) {
             $this->displayMessage('No expired MasterCuti found.');
         } else {
             $this->prepareProgressBar(count($masterCutiList));
-            for ($i = 0; $i <$masterCutiList; $i++) {
+            for ($i = 0; $i < count($masterCutiList); $i++) {
                 $masterCuti = $masterCutiList[$i];
 
                 if ($masterCuti->getPerpanjanganCuti() !== null) {
@@ -118,7 +117,7 @@ class MasterCuti extends \WWII\Console\AbstractConsole
                     continue;
                 }
 
-                $tanggalKadaluarsa = clone($yesterday);
+                $tanggalKadaluarsa = clone($now);
                 $tanggalKadaluarsa->add(new \DateInterval('P3M'));
 
                 $perpanjanganCuti = new \WWII\Domain\Hrd\Cuti\PerpanjanganCuti();
@@ -130,9 +129,9 @@ class MasterCuti extends \WWII\Console\AbstractConsole
             }
             $this->closeProgressBar();
 
-            $scheduledEntityUpdates = $this->entityManager->getUnitOfWork()->getScheduledEntityUpdates();
-            if (empty($scheduledEntityUpdates)) {
-                $this->displayMessage('No new PerpanjanganCuti generated.' . PHP_EOL);
+            $scheduledEntityInsertions = $this->entityManager->getUnitOfWork()->getScheduledEntityInsertions();
+            if (empty($scheduledEntityInsertions)) {
+                $this->displayMessage('No new PerpanjanganCuti generated.');
             } else {
                 $this->displayMessage('Saving to database...');
                 $this->entityManager->flush();
@@ -140,33 +139,43 @@ class MasterCuti extends \WWII\Console\AbstractConsole
         }
 
         $this->displayMessage('GeneratePerpanjanganCuti completed!' . PHP_EOL);
+        sleep(1);
     }
 
     protected function regenerateMasterCuti()
     {
-        $yesterday = new \DateTime();
-        $yesterday->sub(new \DateInterval('P1D'));
+        $now = new \DateTime();
 
         $this->displayMessage('Preparing RegeneratePerpanjanganCuti...');
         $masterCutiList = $this->entityManager->createQueryBuilder()
             ->select('masterCuti')
             ->from('WWII\Domain\Hrd\Cuti\MasterCuti', 'masterCuti')
             ->where('masterCuti.tanggalKadaluarsa = :tanggalKadaluarsa')
-            ->setParameter('tanggalKadaluarsa', $yesterday->format('Y-m-d'))
+            ->setParameter('tanggalKadaluarsa', $now->format('Y-m-d'))
             ->getQuery()->getResult();
 
         if (empty($masterCutiList)) {
             $this->displayMessage('No expired MasterCuti found.');
         } else {
             $this->prepareProgressBar(count($masterCutiList));
-            for ($i = 0; $i <$masterCutiList; $i++) {
+            for ($i = 0; $i < count($masterCutiList); $i++) {
                 $masterCuti = $masterCutiList[$i];
 
-                $tanggalKadaluarsa = clone($yesterday);
+                if (!$this->isEmployeeActive($masterCuti->getNik())) {
+                    $this->incrementProgressBar($i);
+                    continue;
+                }
+
+                $tanggalKadaluarsa = clone($now);
                 $tanggalKadaluarsa->add(new \DateInterval('P1Y'));
 
-                $masterCutiChild = new \WWII\Domain\Hrd\Cuti\PerpanjanganCuti();
+                $masterCutiChild = new \WWII\Domain\Hrd\Cuti\MasterCuti();
+                $masterCutiChild->setNik($masterCuti->getNik());
+                $masterCutiChild->setNamaKaryawan($masterCuti->getNamaKaryawan());
+                $masterCutiChild->setDepartemen($masterCuti->getDepartemen());
+                $masterCutiChild->setTanggalBerlaku(new \DateTime());
                 $masterCutiChild->setTanggalKadaluarsa($tanggalKadaluarsa);
+                $masterCutiChild->setTanggalMasuk($masterCuti->getTanggalMasuk());
                 $masterCutiChild->setParent($masterCuti);
 
                 $this->entityManager->persist($masterCutiChild);
@@ -174,9 +183,9 @@ class MasterCuti extends \WWII\Console\AbstractConsole
             }
             $this->closeProgressBar();
 
-            $scheduledEntityUpdates = $this->entityManager->getUnitOfWork()->getScheduledEntityUpdates();
-            if (empty($scheduledEntityUpdates)) {
-                $this->displayMessage('No new MasterCuti regenerated.' . PHP_EOL);
+            $scheduledEntityInsertions = $this->entityManager->getUnitOfWork()->getScheduledEntityInsertions();
+            if (empty($scheduledEntityInsertions)) {
+                $this->displayMessage('No new MasterCuti regenerated.');
             } else {
                 $this->displayMessage('Saving to database...');
                 $this->entityManager->flush();
@@ -184,5 +193,19 @@ class MasterCuti extends \WWII\Console\AbstractConsole
         }
 
         $this->displayMessage('RegeneratePerpanjanganCuti completed!' . PHP_EOL);
+        sleep(1);
+    }
+
+    private function isEmployeeActive($nik)
+    {
+        $rsEmployee = $this->databaseManager->prepare("SELECT count(t_PALM_PersonnelFileMst.fCode)"
+            . " FROM t_PALM_PersonnelFileMst"
+            . " WHERE t_PALM_PersonnelFileMst.fCode = :nik"
+            . " AND t_PALM_PersonnelFileMst.fDFlag = 0");
+
+        $rsEmployee->bindParam(":nik", $nik);
+        $rsEmployee->execute();
+
+        return count($rsEmployee->fetchColumn()) === 1;
     }
 }
