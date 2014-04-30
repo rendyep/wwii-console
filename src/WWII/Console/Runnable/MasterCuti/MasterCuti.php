@@ -146,11 +146,13 @@ class MasterCuti extends \WWII\Console\AbstractConsole
     {
         $now = new \DateTime();
 
-        $this->displayMessage('Preparing RegeneratePerpanjanganCuti...');
+        $this->displayMessage('Preparing RegenerateMasterCuti...');
         $masterCutiList = $this->entityManager->createQueryBuilder()
             ->select('masterCuti')
             ->from('WWII\Domain\Hrd\Cuti\MasterCuti', 'masterCuti')
+            ->leftJoin('masterCuti.child', 'child')
             ->where('masterCuti.tanggalKadaluarsa = :tanggalKadaluarsa')
+            ->andWhere('child IS NULL')
             ->setParameter('tanggalKadaluarsa', $now->format('Y-m-d'))
             ->getQuery()->getResult();
 
@@ -192,7 +194,7 @@ class MasterCuti extends \WWII\Console\AbstractConsole
             }
         }
 
-        $this->displayMessage('RegeneratePerpanjanganCuti completed!' . PHP_EOL);
+        $this->displayMessage('RegenerateMasterCuti completed!' . PHP_EOL);
         sleep(1);
     }
 
