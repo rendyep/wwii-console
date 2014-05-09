@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="WWII Application Library" default="build">
+<project name="WWII Console Library" default="build">
     <description>
-        WWII Application Library (wwii/application)
+        WWII Console Library (wwii/console)
     </description>
 
     <target name="build" depends="prepare, lint, phpcb, phpdoc" />
