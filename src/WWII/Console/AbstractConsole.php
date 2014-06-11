@@ -16,9 +16,11 @@ class AbstractConsole implements ConsoleInterface
 
     protected $progressBarSign = '|';
 
-    public function __construct(\WWII\Service\ServiceManagerInterface $serviceManager, \Doctrine\ORM\EntityManager $entityManager)
-    {
-        $this->entityManager = $entityManager;
+    public function __construct(
+        \WWII\Service\ServiceManagerInterface $serviceManager,
+        \Doctrine\ORM\EntityManager $entityManager
+    ) {
+        $this->serviceManager = $serviceManager;
         $this->databaseManager = $serviceManager->get('DatabaseManager');
         $this->entityManager = $entityManager;
     }
