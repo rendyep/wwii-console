@@ -1,48 +1,39 @@
 <?php
 
-namespace WWII\Console\Runnable\MasterCuti;
+namespace WWII\Console\Runnable\Cuti;
 
-class MasterCuti extends \WWII\Console\AbstractConsole
+class CutiController extends \WWII\Console\AbstractConsole
 {
-    public function run()
-    {
-        $start = new \DateTime();
-
-        $this->generateMasterCuti();
-        $this->generatePerpanjanganCuti();
-        $this->regenerateMasterCuti();
-
-        $end = new \DateTime();
-        $diff = $end->diff($start);
-
-        $this->displayMessage('Process start : ' . $start->format('d-m-Y H:i:s'));
-        $this->displayMessage('Proess end    : ' . $end->format('d-m-Y H:i:s'));
-        $this->displayMessage('Time elapsed  : ' . $end->diff($start)->format('%h hours %i minutes %s seconds'));
+    public function defaultAction($args = null) {
+        system('php wwii.php cuti --help');
     }
 
-    protected function generateMasterCuti()
+    public function generateMasterCutiAction($args = null)
     {
-        $today = new \DateTime();
+        $this->displayMessage(PHP_EOL . 'Executing master cuti generator...');
 
+        $today = new \DateTime();
         $lastYear = clone($today);
         $lastYear->sub(new \DateInterval('P1Y'));
 
-        $this->displayMessage('Preparing GenerateMasterCuti...');
-        $rsMasterKaryawan = $this->databaseManager->prepare("SELECT t_PALM_PersonnelFileMst.fCode,"
+        $this->displayMessage('Fetching data from ERP...');
+        $rsMasterKaryawan = $this->databaseManager->prepare(
+            "SELECT t_PALM_PersonnelFileMst.fCode,"
             . " t_PALM_PersonnelFileMst.fName, t_PALM_PersonnelFileMst.fInDate, t_BMSM_DeptMst.fDeptName"
             . " FROM t_PALM_PersonnelFileMst"
             . " LEFT JOIN t_BMSM_DeptMst ON t_PALM_PersonnelFileMst.fDeptCode = t_BMSM_DeptMst.fDeptCode"
             . " WHERE fCode LIKE '0%' AND fInDate <= :lastYear AND fDFlag = 0"
-            . " ORDER BY fInDate ASC, fCode ASC");
+            . " ORDER BY fInDate ASC, fCode ASC"
+        );
         $rsMasterKaryawan->bindParam(':lastYear', $lastYear->format('Y-m-d'));
         $rsMasterKaryawan->execute();
 
         $masterKaryawanList = $rsMasterKaryawan->fetchAll(\PDO::FETCH_ASSOC);
 
         if (empty($masterKaryawanList)) {
-            $this->displayMessage('No MasterKaryawan found.');
+            $this->displayMessage('No master karyawan found.');
         } else {
-            $this->prepareProgressBar(count($masterKaryawanList));
+            $this->prepareProgressBar(count($masterKaryawanList), 'Analyzing');
             for ($i = 0; $i < count($masterKaryawanList); $i++) {
                 $masterKaryawan = $masterKaryawanList[$i];
 
@@ -81,23 +72,23 @@ class MasterCuti extends \WWII\Console\AbstractConsole
 
             $scheduledEntityInsertions = $this->entityManager->getUnitOfWork()->getScheduledEntityInsertions();
             if (!empty($scheduledEntityInsertions)) {
-                $this->displayMessage('MasterCuti to generate: '.  count($scheduledEntityInsertions) . ' item(s)');
-                $this->displayMessage('Generating MasterCuti...');
+                $this->displayMessage('Master cuti to generate: '.  count($scheduledEntityInsertions) . ' item(s)');
+                $this->displayMessage('Processing...');
                 $this->entityManager->flush();
             } else {
-                $this->displayMessage('No new MasterCuti generated.');
+                $this->displayMessage('No new master cuti generated.');
             }
         }
 
-        $this->displayMessage('GenerateMasterCuti completed!' . PHP_EOL);
-        sleep(1);
+        $this->displayMessage('Done!');
     }
 
-    protected function generatePerpanjanganCuti()
+    public function generatePerpanjanganCutiAction(array $args = null)
     {
+        $this->displayMessage(PHP_EOL . 'Executing perpanjangan cuti generator...');
         $now = new \DateTime();
 
-        $this->displayMessage('Preparing GeneratePerpanjanganCuti...');
+        $this->displayMessage('Fetching data from master cuti...');
         $masterCutiList = $this->entityManager->createQueryBuilder()
             ->select('masterCuti')
             ->from('WWII\Domain\Hrd\Cuti\MasterCuti', 'masterCuti')
@@ -106,9 +97,9 @@ class MasterCuti extends \WWII\Console\AbstractConsole
             ->getQuery()->getResult();
 
         if (empty($masterCutiList)) {
-            $this->displayMessage('No expired MasterCuti found.');
+            $this->displayMessage('No expired master cuti found.');
         } else {
-            $this->prepareProgressBar(count($masterCutiList));
+            $this->prepareProgressBar(count($masterCutiList), 'Analyzing');
             for ($i = 0; $i < count($masterCutiList); $i++) {
                 $masterCuti = $masterCutiList[$i];
 
@@ -131,22 +122,26 @@ class MasterCuti extends \WWII\Console\AbstractConsole
 
             $scheduledEntityInsertions = $this->entityManager->getUnitOfWork()->getScheduledEntityInsertions();
             if (empty($scheduledEntityInsertions)) {
-                $this->displayMessage('No new PerpanjanganCuti generated.');
+                $this->displayMessage('No new perpanjangan cuti generated.');
             } else {
-                $this->displayMessage('Saving to database...');
+                $this->displayMessage(
+                    'Perpanjangan cuti to generate: '
+                    . count($scheduledEntityInsertions) . ' item(s)'
+                );
+                $this->displayMessage('Processing...');
                 $this->entityManager->flush();
             }
         }
 
-        $this->displayMessage('GeneratePerpanjanganCuti completed!' . PHP_EOL);
-        sleep(1);
+        $this->displayMessage('Done!');
     }
 
-    protected function regenerateMasterCuti()
+    public function regenerateMasterCutiAction(array $args = null)
     {
+        $this->displayMessage(PHP_EOL . 'Executing regenerate master cuti...');
         $now = new \DateTime();
 
-        $this->displayMessage('Preparing RegenerateMasterCuti...');
+        $this->displayMessage('Fetching data from master cuti...');
         $masterCutiList = $this->entityManager->createQueryBuilder()
             ->select('masterCuti')
             ->from('WWII\Domain\Hrd\Cuti\MasterCuti', 'masterCuti')
@@ -157,7 +152,7 @@ class MasterCuti extends \WWII\Console\AbstractConsole
             ->getQuery()->getResult();
 
         if (empty($masterCutiList)) {
-            $this->displayMessage('No expired MasterCuti found.');
+            $this->displayMessage('No expired master cuti found.');
         } else {
             $this->prepareProgressBar(count($masterCutiList));
             for ($i = 0; $i < count($masterCutiList); $i++) {
@@ -187,23 +182,31 @@ class MasterCuti extends \WWII\Console\AbstractConsole
 
             $scheduledEntityInsertions = $this->entityManager->getUnitOfWork()->getScheduledEntityInsertions();
             if (empty($scheduledEntityInsertions)) {
-                $this->displayMessage('No new MasterCuti regenerated.');
+                $this->displayMessage('No new master cuti regenerated.');
             } else {
-                $this->displayMessage('Saving to database...');
+                $this->displayMessage('Regenerating master cuti...');
                 $this->entityManager->flush();
             }
         }
 
-        $this->displayMessage('RegenerateMasterCuti completed!' . PHP_EOL);
-        sleep(1);
+        $this->displayMessage('Done!');
+    }
+
+    public function generateAllAction(array $args = null)
+    {
+        $this->generateMasterCutiAction($args);
+        $this->generatePerpanjanganCutiAction($args);
+        $this->regenerateMasterCutiAction($args);
     }
 
     private function isEmployeeActive($nik)
     {
-        $rsEmployee = $this->databaseManager->prepare("SELECT count(t_PALM_PersonnelFileMst.fCode)"
+        $rsEmployee = $this->databaseManager->prepare(
+            "SELECT count(t_PALM_PersonnelFileMst.fCode)"
             . " FROM t_PALM_PersonnelFileMst"
             . " WHERE t_PALM_PersonnelFileMst.fCode = :nik"
-            . " AND t_PALM_PersonnelFileMst.fDFlag = 0");
+            . " AND t_PALM_PersonnelFileMst.fDFlag = 0"
+        );
 
         $rsEmployee->bindParam(":nik", $nik);
         $rsEmployee->execute();

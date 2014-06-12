@@ -25,12 +25,12 @@ class AbstractConsole implements ConsoleInterface
         $this->entityManager = $entityManager;
     }
 
-    protected function prepareProgressBar($itemCount)
+    protected function prepareProgressBar($itemCount, $processName = 'Processing')
     {
         $this->itemCount = $itemCount;
 
         $this->progress = 0;
-        $this->displayMessage('Processing ' . $itemCount . ' number(s) of data...');
+        $this->displayMessage($processName . ' ' . $itemCount . ' number(s) of data...');
     }
 
     protected function incrementProgressBar($progress)
