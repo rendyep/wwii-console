@@ -4,11 +4,47 @@ namespace WWII\Console\Runnable\Cuti;
 
 class CutiController extends \WWII\Console\AbstractConsole
 {
-    public function defaultAction($args = null) {
-        system('php wwii.php cuti --help');
+    public function run(array $options = null, array $args = null)
+    {
+        if (isset($options['generateMasterCuti'])) {
+            if (isset($options['generatePerpanjanganCuti'])
+                || isset($options['regenerateMasterCuti'])
+                || isset($options['generateAll'])) {
+                return $this->displayMessage("Error: cannot use multiple options!");
+            }
+
+            $this->generateMasterCuti($options, $args);
+        } else if (isset($options['generatePerpanjanganCuti'])) {
+            if (isset($options['generateMasterCuti'])
+                || isset($options['regenerateMasterCuti'])
+                || isset($options['generateAll'])) {
+                return $this->displayMessage("Error: cannot use multiple options!");
+            }
+
+            $this->generatePerpanjanganCuti($options, $args);
+        } else if (isset($options['regenerateMasterCuti'])) {
+            if (isset($options['generateMasterCuti'])
+                || isset($options['generatePerpanjanganCuti'])
+                || isset($options['generateAll'])) {
+                return $this->displayMessage("Error: cannot use multiple options!");
+            }
+            $this->regenerateMasterCuti($options, $args);
+        } else if (isset($options['generateAll'])) {
+            if (isset($options['generateMasterCuti'])
+                || isset($options['generatePerpanjanganCuti'])
+                || isset($options['regenerateMasterCuti'])) {
+                return $this->displayMessage("Error: cannot use multiple options!");
+            }
+
+            $this->generateMasterCuti($options, $args);
+            $this->generatePerpanjanganCuti($options, $args);
+            $this->regenerateMasterCuti($options, $args);
+        } else {
+            system('wwii.bat cuti --help');
+        }
     }
 
-    public function generateMasterCutiAction($args = null)
+    public function generateMasterCuti(array $options = null, array $args = null)
     {
         $this->displayMessage(PHP_EOL . 'Executing master cuti generator...');
 
@@ -83,7 +119,7 @@ class CutiController extends \WWII\Console\AbstractConsole
         $this->displayMessage('Done!');
     }
 
-    public function generatePerpanjanganCutiAction(array $args = null)
+    public function generatePerpanjanganCuti(array $options = null, array $args = null)
     {
         $this->displayMessage(PHP_EOL . 'Executing perpanjangan cuti generator...');
         $now = new \DateTime();
@@ -136,7 +172,7 @@ class CutiController extends \WWII\Console\AbstractConsole
         $this->displayMessage('Done!');
     }
 
-    public function regenerateMasterCutiAction(array $args = null)
+    public function regenerateMasterCuti(array $options = null, array $args = null)
     {
         $this->displayMessage(PHP_EOL . 'Executing regenerate master cuti...');
         $now = new \DateTime();
@@ -190,13 +226,6 @@ class CutiController extends \WWII\Console\AbstractConsole
         }
 
         $this->displayMessage('Done!');
-    }
-
-    public function generateAllAction(array $args = null)
-    {
-        $this->generateMasterCutiAction($args);
-        $this->generatePerpanjanganCutiAction($args);
-        $this->regenerateMasterCutiAction($args);
     }
 
     private function isEmployeeActive($nik)

@@ -4,11 +4,26 @@ namespace WWII\Console\Runnable\Database;
 
 class DatabaseController extends \WWII\Console\AbstractConsole
 {
-    public function defaultAction($args = null) {
-        system('php wwii.php database --help');
+    public function run(array $options = null, array $args = null)
+    {
+        if ($options['backup'] !== null) {
+            if ($options['restore'] !== null) {
+                return $this->displayMessage("Error: cannot backup and restore on the same time!");
+            }
+
+            $this->backup($options, $args);
+        } else if ($options['restore'] !== null) {
+            if ($options['backup'] !== null) {
+                return $this->displayMessage("Error: cannot restore and backup on the same time!");
+            }
+
+            $this->restore($options, $args);
+        } else {
+            system('wwii.bat database --help');
+        }
     }
 
-    public function backupAction(array $args = null)
+    protected function backup(array $options = null, array $args = null)
     {
         $this->displayMessage(PHP_EOL . "Executing database backup...");
 
@@ -24,7 +39,7 @@ class DatabaseController extends \WWII\Console\AbstractConsole
         $this->displayMessage("Database backup completed!");
     }
 
-    public function restoreAction(array $args = null) {
+    public function restore(array $options = null, array $args = null) {
         $this->displayMessage(PHP_EOL . "Executing database restore...");
 
         $configManager = $this->serviceManager->getConfigManager();
