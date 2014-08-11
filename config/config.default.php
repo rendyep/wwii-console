@@ -57,6 +57,24 @@ $config = array(
                     ),
                 )
             ),
+            'daily-presence' => array(
+                'description' => 'WWII Personel Daily Presence Handler',
+                'controller' => '\\WWII\\Console\\Runnable\\DailyPresence\\DailyPresenceController',
+                'options' => array(
+                    'generateDailyPresence' => array(
+                        'description' => 'generate personel daily presence',
+                        'short_name'  => '-g',
+                        'long_name'   => '--generate',
+                        'action'      => 'StoreTrue',
+                    ),
+                ),
+                'arguments' => array(
+                    'datetime' => array(
+                        'description' => 'datetime of daily presence to generate',
+                        'optional' => true,
+                    ),
+                ),
+            ),
         )
     ),
     'db_backup' => array(
