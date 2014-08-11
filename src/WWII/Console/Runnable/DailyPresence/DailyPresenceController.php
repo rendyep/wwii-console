@@ -19,6 +19,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
 
         if (! isset($args['datetime']) || (isset($args['datetime']) && empty($args['datetime']))) {
             $dateTime = new \DateTime();
+            $dateTime->sub(new \DateInterval('P1D'));
         } else {
             $dateTime = new \DateTime($args['datetime']);
         }
@@ -29,7 +30,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
         $dateTimeTomorrow = clone($dateTime);
         $dateTimeTomorrow = $dateTimeTomorrow->add(new \DateInterval('P1D'));
 
-        $this->displayMessage(PHP_EOL . "Getting personnel daily schedule...");
+        $this->displayMessage(PHP_EOL . "Getting personnel daily schedule ({$dateTime->format('Y-m-d')})...");
         $presences = $this->databaseManager->prepare("
             WITH
             MasterTurn AS (
