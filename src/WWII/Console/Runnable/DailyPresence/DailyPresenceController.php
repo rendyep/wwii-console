@@ -302,7 +302,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                 $status = 'A';
             }
 
-            $id = $this->databaseManager->prepare("
+            $query = $this->databaseManager->prepare("
                 SELECT
                     a_Personnel_CardRecord.fId
                 FROM
@@ -311,11 +311,11 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                     a_Personnel_CardRecord.fCode = '{$presence['fCode']}'
                     AND a_Personnel_CardRecord.fDateTime = '{$dateTimeNow->format('Y-m-d')}'
             ");
-            $id->execute();
-            $id = $id->fetch(\PDO::FETCH_ASSOC);
+            $query->execute();
+            $id = $query->fetch(\PDO::FETCH_ASSOC);
 
-            if ($id === false) {
-                $result = $this->databaseManager->prepare("
+            if ($id === false || empty($id)) {
+                $query = $this->databaseManager->prepare("
                     INSERT INTO a_Personnel_CardRecord (
                         fCode,
                         fDateTime,
@@ -343,7 +343,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                     )
                 ");
             } else {
-                $result = $this->databaseManager->prepare("
+                $query = $this->databaseManager->prepare("
                     UPDATE
                         a_Personnel_CardRecord
                     SET
@@ -369,7 +369,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                 ");
             }
 
-            $result->execute();
+            $query->execute();
 
             $this->incrementProgressBar($i);
         }
