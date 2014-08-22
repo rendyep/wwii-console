@@ -24,7 +24,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
             $dateTime = new \DateTime($args['datetime']);
         }
 
-        $dateTimeNow = $dateTime;
+        $dateTimeNow = clone($dateTime);
         $dateTimeYesterday = clone($dateTime);
         $dateTimeYesterday = $dateTimeYesterday->sub(new \DateInterval('P1D'));
         $dateTimeTomorrow = clone($dateTime);
@@ -254,6 +254,7 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                 LEFT JOIN MasterTurn ON MasterTurn.fTurnCode = DailyTurn.fTurnCode
             WHERE
                 t_PALM_PersonnelFileMst.fDFlag = 0
+                AND t_PALM_PersonnelFileMst.fInDate <= '{$dateTimeNow->format('Y-m-d')}'
             ORDER BY
                 t_PALM_PersonnelFileMst.fCode ASC
         ");
@@ -368,7 +369,6 @@ class DailyPresenceController extends \WWII\Console\AbstractConsole
                         fId = {$id['fId']}
                 ");
             }
-
             $query->execute();
 
             $this->incrementProgressBar($i);
